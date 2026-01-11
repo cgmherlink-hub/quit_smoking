@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高壓戒菸成敗診斷表 - Hormozi 價值模型版</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --accent-color: #e67e22;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg-color);
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        h1 { text-align: center; color: var(--primary-color); font-size: 1.8em; }
+        .formula {
+            background: #eee;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            text-align: center;
+            margin-bottom: 25px;
+            color: #555;
+        }
+        .question-block {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .question-title { font-weight: bold; margin-bottom: 12px; display: block; }
+        .weight-tag {
+            font-size: 0.75em;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            padding: 1px 5px;
+            border-radius: 3px;
+            margin-left: 8px;
+        }
+        .options { display: flex; gap: 12px; flex-wrap: wrap; }
+        label { cursor: pointer; font-size: 0.95em; }
+        
+        #btn-calc {
+            width: 100%;
+            padding: 15px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        #btn-calc:hover { background: #1a252f; }
+
+        .result-section {
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 10px;
+            display: none;
+        }
+        .score-box { text-align: center; margin-bottom: 20px; }
+        .score-num { font-size: 3em; font-weight: bold; color: var(--accent-color); }
+        .hormozi-advice {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 5px solid var(--accent-color);
+            margin-top: 20px;
+        }
+        .hormozi-advice h3 { margin-top: 0; color: var(--accent-color); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>高壓男性戒菸成敗診斷</h1>
+    <div class="formula">
+        價值 = (夢想成就 × 達成機率) / (時間延遲 × 努力與犧牲)
+    </div>
+
+    <form id="burnoutForm">
+        <div id="questions-container"></div>
+        <button type="button" id="btn-calc" onclick="calculateScore()">分析我的戒菸 Offer</button>
+    </form>
+
+    <div id="result" class="result-section">
+        <div class="score-box">
+            <div>您的方案加權得分</div>
+            <div id="totalScore" class="score-num">0</div>
+            <div id="status" style="font-weight: bold; font-size: 1.2em;"></div>
+        </div>
+        <div id="advice" class="hormozi-advice"></div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { id: 1, text: "夢想清晰度：是否有比「戒菸」更具體的領袖目標？", w: 1.0 },
+        { id: 2, text: "壓力關聯性：抽菸是否是你唯一的壓力瞬間解藥？", w: 1.5 },
+        { id: 3, text: "社交阻礙：你的核心圈是否大多是吸菸者？", w: 0.8 },
+        { id: 4, text: "替代速度：是否有 30 秒內緩解壓力的非菸方案？", w: 1.2 },
+        { id: 5, text: "風險消除：是否準備好藥物或工具消除生理恐慌？", w: 1.0 },
+        { id: 6, text: "失敗預期：心裡是否覺得「反正這次也會失敗」？", w: 2.0 },
+        { id: 7, text: "損失機制：是否有「抽菸就賠大錢」的懲罰合約？", w: 0.7 },
+        { id: 8, text: "犧牲感：是否覺得戒菸會失去創意或社交地位？", w: 1.5 },
+        { id: 9, text: "即時回饋：能否在 24 小時內感受到具體獲利？", w: 1.0 },
+        { id: 10, text: "習得性無助：是否已放棄新方法，只靠意志力？", w: 1.3 }
+    ];
+
+    const container = document.getElementById('questions-container');
+    questions.forEach(q => {
+        let html = `
+            <div class="question-block">
+                <span class="question-title">${q.id}. ${q.text} <span class="weight-tag">權重 ×${q.w}</span></span>
+                <div class="options">
+                    ${[0,1,2,3].map(v => `<label><input type="radio" name="q${q.id}" value="${v}" required> ${v}分</label>`).join('')}
+                </div>
+            </div>`;
+        container.innerHTML += html;
+    });
+
+    function calculateScore() {
+        let total = 0;
+        let answered = 0;
+        questions.forEach(q => {
+            const sel = document.querySelector(`input[name="q${q.id}"]:checked`);
+            if (sel) { total += parseFloat(sel.value) * q.w; answered++; }
+        });
+
+        if (answered < 10) return alert("請完成所有診斷題目");
+
+        const resDiv = document.getElementById('result');
+        const scoreSpan = document.getElementById('totalScore');
+        const statusDiv = document.getElementById('status');
+        const adviceDiv = document.getElementById('advice');
+
+        resDiv.style.display = 'block';
+        const finalScore = total.toFixed(1);
+        scoreSpan.innerText = finalScore;
+
+        if (finalScore <= 12) {
+            statusDiv.innerText = "【優質交易】成左爾Q像高";
+            adviceDiv.innerHTML = "<h3>Hormozi 策略：</h3>你的方案分母極小。請專注於「夢想成就」的視覺化，保持目前的系統，你正在贏得這場交易。";
+        } else if (finalScore <= 24) {
+            statusDiv.innerText = "【價值失衡】阻礙過大";
+            adviceDiv.innerHTML = "<h3>Hormozi 策略：</h3>你的「努力與犧牲」過高。不要靠意志力！<b>引進工具消除風險</b>（如貼片或諮詢），並縮短「回饋延遲」，每 12 小時給自己一個具體獎勵。";
+        } else {
+            statusDiv.innerText = "【高危險 Offers】註定失敗的邏輯";
+            adviceDiv.innerHTML = "<h3>Hormozi 策略：</h3>你的大腦認為這是一場賠本生意。你需要<b>重新包裝動機</b>：你不是在戒菸，是在升級精英大腦。立刻建立一個『不可抗拒的損失機制』（如對賭合約），強制提高你的執行可能性。";
+        }
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+</body>
+</html>
