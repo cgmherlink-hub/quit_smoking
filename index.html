@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>高壓戒菸成敗診斷表 - Hormozi 價值模型版</title>
+    <title>高壓戒菸診斷表</title>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -51,7 +51,8 @@
             margin-left: 8px;
         }
         .options { display: flex; gap: 12px; flex-wrap: wrap; }
-        label { cursor: pointer; font-size: 0.95em; }
+        label { cursor: pointer; font-size: 0.95em; display: flex; align-items: center; }
+        input[type="radio"] { margin-right: 5px; }
         
         #btn-calc {
             width: 100%;
@@ -108,8 +109,11 @@
 </div>
 
 <script>
+    // 定義選項文字
+    const customOptions = ["沒有", "有一些或一點", "有想要", "非常想要的"];
+
     const questions = [
-        { id: 1, text: "夢想清晰度：是否有比「戒菸」更具體的領袖目標？", w: 1.0 },
+        { id: 1, text: "你是否有比「戒菸」更具體的往前走目標（如升遷，加薪，買房子，買車子⋯⋯？）", w: 1.0, isCustom: true },
         { id: 2, text: "壓力關聯性：抽菸是否是你唯一的壓力瞬間解藥？", w: 1.5 },
         { id: 3, text: "社交阻礙：你的核心圈是否大多是吸菸者？", w: 0.8 },
         { id: 4, text: "替代速度：是否有 30 秒內緩解壓力的非菸方案？", w: 1.2 },
@@ -123,11 +127,24 @@
 
     const container = document.getElementById('questions-container');
     questions.forEach(q => {
+        let optionsHtml = "";
+        if (q.isCustom) {
+            // 使用您指定的自定義選項
+            optionsHtml = customOptions.map((label, v) => `
+                <label><input type="radio" name="q${q.id}" value="${v}" required> ${label}</label>
+            `).join('');
+        } else {
+            // 使用標準 0-3 分選項
+            optionsHtml = [0, 1, 2, 3].map(v => `
+                <label><input type="radio" name="q${q.id}" value="${v}" required> ${v}分</label>
+            `).join('');
+        }
+
         let html = `
             <div class="question-block">
                 <span class="question-title">${q.id}. ${q.text} <span class="weight-tag">權重 ×${q.w}</span></span>
                 <div class="options">
-                    ${[0,1,2,3].map(v => `<label><input type="radio" name="q${q.id}" value="${v}" required> ${v}分</label>`).join('')}
+                    ${optionsHtml}
                 </div>
             </div>`;
         container.innerHTML += html;
@@ -153,7 +170,7 @@
         scoreSpan.innerText = finalScore;
 
         if (finalScore <= 12) {
-            statusDiv.innerText = "【優質交易】成左爾Q像高";
+            statusDiv.innerText = "【優質交易】成功可能性高";
             adviceDiv.innerHTML = "<h3>Hormozi 策略：</h3>你的方案分母極小。請專注於「夢想成就」的視覺化，保持目前的系統，你正在贏得這場交易。";
         } else if (finalScore <= 24) {
             statusDiv.innerText = "【價值失衡】阻礙過大";
